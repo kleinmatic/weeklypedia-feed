@@ -58,18 +58,23 @@ def extract_content(html):
     body = body_match.group(1)
     sections = []
 
-    # Pattern: <h2 id="articles">Articles</h2> ... <ol>...</ol>
-    # The <ol> may not immediately follow <h2>, so we capture everything up to </ol>
-    section_pattern = r'<h2[^>]*>([^<]+)</h2>(.*?<ol[^>]*>.*?</ol>)'
+    # Pattern: <h2 id="articles">Articles</h2> ... <p>intro</p> ... <ol>...</ol>
+    # Capture everything between h2 and closing </ol>
+    section_pattern = r'<h2[^>]*>([^<]+)</h2>(.*?</ol>)'
     matches = re.findall(section_pattern, body, re.DOTALL)
 
     for title, content in matches:
         title = title.strip()
         if title in ['Articles', 'New Articles', 'Discussions']:
-            # Extract just the <ol>...</ol> part
+            # Extract the intro paragraph and the list
+            intro = ""
+            p_match = re.search(r'<p>([^<]+)</p>', content)
+            if p_match:
+                intro = f"<p>{p_match.group(1).strip()}</p>\n"
+
             ol_match = re.search(r'<ol[^>]*>.*?</ol>', content, re.DOTALL)
             if ol_match:
-                sections.append(f"<h3>{title}</h3>\n{ol_match.group(0)}")
+                sections.append(f"<h3>{title}</h3>\n{intro}{ol_match.group(0)}")
 
     if sections:
         return "\n".join(sections)
